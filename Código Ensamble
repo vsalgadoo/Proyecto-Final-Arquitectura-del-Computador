@@ -1,0 +1,201 @@
+; === Inicialización ===
+; Inicializa el registro A (Acumulador) a 0
+MOV ACC, CTE        ; Carga el valor inmediato (dirección de A) en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A al puntero de datos (DPTR)
+MOV ACC, CTE        ; Carga el valor 0x00 en ACC
+0X00                ; Valor 0 para inicializar A
+MOV [DPTR], ACC     ; Almacena 0 en la dirección de A (A = 0)
+
+; Inicializa el registro Q-1 (bit anterior de Q) a 0
+MOV ACC, CTE        ; Carga la dirección de Q-1 en ACC
+Q1_ADDR             ; Dirección de memoria para Q-1 (0x91)
+MOV DPTR, ACC       ; Mueve la dirección de Q-1 a DPTR
+MOV ACC, CTE        ; Carga el valor 0x00 en ACC
+0X00                ; Valor 0 para inicializar Q-1
+MOV [DPTR], ACC     ; Almacena 0 en Q-1 (Q-1 = 0)
+
+; Inicializa el contador a 8 (para 8 bits)
+MOV ACC, CTE        ; Carga la dirección del contador en ACC
+COUNTER_ADDR        ; Dirección de memoria para el contador (0x92)
+MOV DPTR, ACC       ; Mueve la dirección del contador a DPTR
+MOV ACC, CTE        ; Carga el valor 0x08 en ACC
+0X08                ; Valor 8 para el contador (iteraciones)
+MOV [DPTR], ACC     ; Almacena 8 en el contador (contador = 8)
+
+; === Bucle Principal ===
+; Etiqueta principal del bucle
+LOOP:
+; Verifica el bit menos significativo (LSB) de Q
+MOV ACC, CTE        ; Carga la dirección de Q en ACC
+Q_ADDR              ; Dirección de memoria para Q (0x81)
+MOV DPTR, ACC       ; Mueve la dirección de Q a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q en ACC
+AND ACC, CTE1       ; Aplica máscara para obtener el LSB de Q (Q & 0x01)
+JZ CHECK_SUMA       ; Si el LSB de Q es 0, salta a CHECK_SUMA **
+JMP CHECK_Q1        ; Si el LSB de Q es 1, salta a CHECK_Q1
+
+
+; Verifica el valor de Q-1 si Q[0] = 1
+CHECK_Q1:
+MOV ACC, CTE        ; Carga la dirección de Q-1 en ACC
+Q1_ADDR             ; Dirección de memoria para Q-1 (0x91)
+MOV DPTR, ACC       ; Mueve la dirección de Q-1 a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q-1 en ACC
+AND ACC, CTE1       ; Aplica máscara para obtener el LSB de Q-1 (Q-1 & 0x01)
+JZ RESTAR_M         ; Si Q-1 = 0, salta a RESTAR_M (resta M de A)
+JMP SKIP_OP         ; Si Q-1 = 1, salta a SKIP_OP (no opera)
+
+; Verifica el valor de Q-1 si Q[0] = 0
+CHECK_SUMA:
+MOV ACC, CTE        ; Carga la dirección de Q-1 en ACC
+Q1_ADDR             ; Dirección de memoria para Q-1 (0x91)
+MOV DPTR, ACC       ; Mueve la dirección de Q-1 a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q-1 en ACC
+AND ACC, CTE1       ; Aplica máscara para obtener el LSB de Q-1 (Q-1 & 0x01)
+JZ SKIP_OP          ; Si Q-1 = 0, salta a SKIP_OP (no opera) **
+JMP SUMAR_M         ; Si Q-1 = 1, salta a SUMAR_M (suma M a A)
+
+; Suma M al registro A
+SUMAR_M:
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+MOV ACC, CTE        ; Carga la dirección de M en ACC
+M_ADDR              ; Dirección de memoria para M (0x80)
+MOV DPTR, ACC       ; Mueve la dirección de M a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de M en ACC
+ADD A, ACC          ; Suma A y M (A = A + M)
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV [DPTR], A       ; Almacena el nuevo valor de A
+JMP SHIFT           ; Salta al desplazamiento (shift)
+
+; Resta M del registro A (A = A - M)
+RESTAR_M:
+MOV ACC, CTE        ; Carga la dirección de M en ACC
+M_ADDR              ; Dirección de memoria para M (0x80)
+MOV DPTR, ACC       ; Mueve la dirección de M a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de M en ACC
+INV ACC             ; Invierte los bits de M (~M)
+MOV ACC, CTE1       ; Carga 0x01 en ACC
+ADD A, ACC          ; Suma 1 para obtener el complemento a 2 de M (-M)
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+ADD A, ACC          ; Suma A y -M (A = A - M)
+MOV [DPTR], A       ; Almacena el nuevo valor de A
+JMP SHIFT           ; Salta al desplazamiento (shift)
+
+; No se realiza operación (A no cambia)
+SKIP_OP:
+
+; === Desplazamiento Aritmético (Shift Right) ===
+SHIFT:
+; Guarda el LSB de A en Q-1
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+AND ACC, CTE1       ; Aplica máscara para obtener el LSB de A (A & 0x01)
+MOV ACC, CTE        ; Carga la dirección de Q en ACC
+Q_ADDR              ; Dirección de memoria para Q (0x81)
+MOV DPTR, ACC       ; Mueve la dirección de Q a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q en ACC
+AND ACC, 1          ; Aplica máscara para obtener el LSB de Q (Q & 0x01)
+MOV ACC, CTE        ; Carga la dirección de Q-1 en ACC
+Q1_ADDR             ; Dirección de memoria para Q-1 (0x91)
+MOV DPTR, ACC       ; Mueve la dirección de Q-1 a DPTR
+MOV [DPTR], A       ; Almacena el LSB de Q en Q-1 (Q-1 = Q[0])
+
+; Desplaza Q a la derecha (shift right) y copia el bit 7 de A al bit 7 de Q
+MOV ACC, CTE        ; Carga la dirección de Q en ACC
+Q_ADDR              ; Dirección de memoria para Q (0x81)
+MOV DPTR, ACC       ; Mueve la dirección de Q a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q en ACC
+SHR ACC             ; Desplaza Q a la derecha (Q >>= 1)
+MOV ACC, CTE1       ; Carga 0x01 en ACC
+SHL ACC             ; Desplaza 0x01 a la izquierda (0x02)
+SHL ACC             ; 0x04
+SHL ACC             ; 0x08
+SHL ACC             ; 0x10
+SHL ACC             ; 0x20
+SHL ACC             ; 0x40 (prepara máscara para el MSB de A)
+OR A, ACC           ; Combina con el MSB de A (Q[7] = A[0])
+MOV [DPTR], A       ; Almacena el nuevo valor de Q
+
+; Desplaza A a la derecha (shift right aritmético, manteniendo el signo)
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+MOV ACC, CTE        ; Carga 0x80 (máscara para el MSB de A)
+0X80                ; Máscara para el bit de signo (10000000)
+AND ACC, A          ; Obtiene el MSB de A (A & 0x80)
+SHR A               ; Desplaza A a la derecha (A >>= 1)
+OR ACC, A           ; Mantiene el bit de signo en el MSB de A
+MOV [DPTR], A       ; Almacena el nuevo valor de A
+
+; === Decrementar Contador ===
+MOV ACC, CTE        ; Carga la dirección del contador en ACC
+COUNTER_ADDR        ; Dirección de memoria para el contador (0x92)
+MOV DPTR, ACC       ; Mueve la dirección del contador a DPTR
+MOV ACC, [DPTR]     ; Carga el valor del contador en ACC
+MOV ACC, CTE1       ; Carga 0x01 en ACC
+INV ACC             ; Invierte 0x01 (0xFE)
+ADD A, ACC          ; Resta 1 al contador (contador--)
+MOV [DPTR], A       ; Almacena el nuevo valor del contador
+JZ FIN_LOOP         ; Si contador == 0, salta a FIN_LOOP **
+JMP LOOP            ; Si no, repite el bucle
+
+; === Guardar Resultado ===
+; Almacena el valor final de A en RESULT_ADDR
+FIN_LOOP:
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria para A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+MOV ACC, CTE        ; Carga la dirección de RESULT_ADDR en ACC
+RESULT_ADDR         ; Dirección de memoria para el resultado (0x93)
+MOV DPTR, ACC       ; Mueve la dirección de RESULT_ADDR a DPTR
+MOV [DPTR], A       ; Almacena A en RESULT_ADDR
+
+; Almacena el valor final de Q en QFINAL_ADDR
+MOV ACC, CTE        ; Carga la dirección de Q en ACC
+Q_ADDR              ; Dirección de memoria para Q (0x81)
+MOV DPTR, ACC       ; Mueve la dirección de Q a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de Q en ACC
+MOV ACC, CTE        ; Carga la dirección de QFINAL_ADDR en ACC
+QFINAL_ADDR         ; Dirección de memoria para Q final (0x94)
+MOV DPTR, ACC       ; Mueve la dirección de QFINAL_ADDR a DPTR
+MOV [DPTR], A       ; Almacena Q en QFINAL_ADDR
+
+; == Guardar Resultado para Mostrar por Pantalla ==
+; Guardar A en el registro A del procesador
+MOV ACC, CTE        ; Carga la dirección de A en ACC
+A_ADDR              ; Dirección de memoria de A (0x90)
+MOV DPTR, ACC       ; Mueve la dirección de A a DPTR
+MOV ACC, [DPTR]     ; Carga el valor de A en ACC
+MOV A, ACC          ; Guarda el valor de A en el registro A del procesador
+
+; Guardar Q en el acumulador (ACC)
+MOV ACC, CTE        ; Carga la dirección de QFINAL_ADDR en ACC
+QFINAL_ADDR         ; Dirección donde se guardó Q (0x94)
+MOV DPTR, ACC       ; Mueve la dirección a DPTR
+MOV ACC, [DPTR]     ; Carga Q en ACC (Q queda en el acumulador)
+
+; Termina la ejecución
+HALT
+
+; === Variables y Direcciones de Memoria ===
+; Todas las direcciones están en el rango 0b10000xxx-0b11110xxx
+M_ADDR:         0x80    ; Dirección de M (multiplicando)
+Q_ADDR:         0x81    ; Dirección de Q (multiplicador)
+A_ADDR:         0x90    ; Dirección de A (acumulador)
+Q1_ADDR:        0x91    ; Dirección de Q-1 (bit anterior de Q)
+COUNTER_ADDR:   0x92    ; Dirección del contador (iteraciones)
+RESULT_ADDR:    0x93    ; Dirección del resultado (parte alta)
+QFINAL_ADDR:    0x94    ; Dirección de Q final (parte baja)
