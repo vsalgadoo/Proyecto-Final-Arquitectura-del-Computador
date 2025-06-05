@@ -1,0 +1,83 @@
+========================
+   CÓDIGOS DE PRUEBA
+========================
+
+========================
+         SRL A
+========================
+
+MOV ACC, CTE        ; Cargar valor inmediato en ACC
+0xAA                ; Valor de prueba
+MOV A, ACC          ; Transferir a registro A
+SLR A               ; Aplicar shift lógico a la derecha sobre A
+HALT                ; Finalizar ejecución
+
+
+0b00011000
+0b10101010
+0b00010000
+0b11010000
+0b11111000
+
+
+========================
+       OR A, ACC
+========================
+
+MOV ACC, CTE        ; Cargar primer valor en ACC
+0x0F                ; 00001111
+MOV A, ACC          ; Mover a A
+MOV ACC, CTE        ; Cargar segundo valor en ACC
+0xF0                ; 11110000
+OR A, ACC           ; A = A | ACC → Resultado: 11111111
+HALT
+
+
+0b00011000
+0b00001111
+0b00010000
+0b00011000
+0b11110000
+0b11000000
+0b11111000
+
+
+========================
+      ADD A, ACC
+========================
+
+MOV ACC, CTE        ; Cargar primer valor en ACC
+0x05                ; 5
+MOV A, ACC          ; A = 5
+MOV ACC, CTE        ; Cargar segundo valor en ACC
+0x07                ; 7
+ADD A, ACC          ; A = A + ACC → Resultado: 12
+HALT
+
+
+0b00011000
+0b00000101
+0b00010000
+0b00011000
+0b00000111
+0b11001000
+0b11111000
+
+
+========================
+     AND ACC, CTE1
+========================
+
+MOV ACC, CTE        ; Cargar valor en ACC
+0xAA                ; 10101010
+AND ACC, CTE1       ; ACC = ACC & 0x01 → resultado: 0
+HALT
+
+
+0b00011000
+0b10101010
+0b11011000
+0b11111000
+
+
+
